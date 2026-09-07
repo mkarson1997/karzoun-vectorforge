@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/mkarson1997/karzoun-vectorforge/actions/workflows/ci.yml/badge.svg)](https://github.com/mkarson1997/karzoun-vectorforge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/mkarson1997/karzoun-vectorforge/actions/workflows/codeql.yml/badge.svg)](https://github.com/mkarson1997/karzoun-vectorforge/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/mkarson1997/karzoun-vectorforge)](https://github.com/mkarson1997/karzoun-vectorforge/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 VectorForge is a C++20 approximate nearest-neighbor search engine focused on measurable behavior, persistence safety, and systems-level engineering.
@@ -48,6 +49,25 @@ ctest --test-dir build --output-on-failure
 ```
 
 The benchmark reports recall and latency together because ANN speed without recall is not a meaningful quality claim.
+
+## Distribution
+
+Tagged releases publish native CLI binaries for Linux, Windows, and macOS plus `SHA256SUMS.txt`.
+
+Container image:
+
+```bash
+docker run --rm ghcr.io/mkarson1997/karzoun-vectorforge:latest --help
+```
+
+Benchmark from the container:
+
+```bash
+docker run --rm ghcr.io/mkarson1997/karzoun-vectorforge:0.1.0 \
+  benchmark --vectors 5000 --dimensions 64 --queries 200 --k 10 --ef-search 64
+```
+
+Release containers are built with SBOM and provenance attestations. Verify downloaded native artifacts against `SHA256SUMS.txt` before execution.
 
 ## Sanitizers
 

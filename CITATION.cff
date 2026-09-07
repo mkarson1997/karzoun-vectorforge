@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: Karzoun VectorForge
+message: If you use VectorForge in research or evaluation, please cite this software.
+type: software
+authors:
+  - family-names: Karzoun
+    given-names: Mahmoud
+version: 0.1.0
+date-released: 2026-09-07
+license: Apache-2.0
+repository-code: https://github.com/mkarson1997/karzoun-vectorforge
+url: https://github.com/mkarson1997/karzoun-vectorforge
+keywords:
+  - vector-search
+  - approximate-nearest-neighbor
+  - cpp
+  - graph-search
+  - persistence
+  - benchmarking
