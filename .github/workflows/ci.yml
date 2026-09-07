@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+jobs:
+  build-test:
+    name: ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure compiler
+        shell: bash
+        run: |
+          if [[ "${{ matrix.compiler }}" == "clang" ]]; then
+            echo "CC=clang" >> "$GITHUB_ENV"
+            echo "CXX=clang++" >> "$GITHUB_ENV"
+          else
+            echo "CC=gcc" >> "$GITHUB_ENV"
+            echo "CXX=g++" >> "$GITHUB_ENV"
+          fi
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel 2
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Smoke benchmark
+        run: ./build/vectorforge benchmark --vectors 500 --dimensions 16 --queries 20 --k 5 --ef-search 64
+
+  sanitizers:
+    name: ASan + UBSan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build-san -DCMAKE_BUILD_TYPE=Debug -DVECTORFORGE_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: cmake --build build-san --parallel 2
+      - name: Test under sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+        run: ctest --test-dir build-san --output-on-failure
+
+  ci-gate:
+    name: CI Gate
+    if: always()
+    needs: [build-test, sanitizers]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Enforce required jobs
+        if: needs.build-test.result != 'success' || needs.sanitizers.result != 'success'
+        run: exit 1
+      - name: Confirm green build
+        if: needs.build-test.result == 'success' && needs.sanitizers.result == 'success'
+        run: echo "VectorForge CI is green."
