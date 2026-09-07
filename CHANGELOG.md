@@ -2,7 +2,7 @@
 
 All notable changes to VectorForge are documented here.
 
-## Unreleased
+## 0.1.0 - 2026-09-07
 
 ### Added
 
@@ -14,3 +14,6 @@ All notable changes to VectorForge are documented here.
 - deterministic recall and persistence tests
 - benchmark CLI and standalone benchmark harness
 - GCC/Clang CI, ASan/UBSan, CodeQL, and Dependabot
+- native release binaries for Linux, Windows, and macOS
+- SHA-256 release manifest
+- runnable GHCR CLI image with SBOM and provenance
