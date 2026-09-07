@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+jobs:
+  compilers:
+    name: GCC + Clang
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: GCC configure
+        env:
+          CC: gcc
+          CXX: g++
+        run: cmake -S . -B build-gcc -DCMAKE_BUILD_TYPE=Release
+      - name: GCC build
+        run: cmake --build build-gcc --parallel 2
+      - name: GCC test
+        run: ctest --test-dir build-gcc --output-on-failure
+      - name: Clang configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build-clang -DCMAKE_BUILD_TYPE=Release
+      - name: Clang build
+        run: cmake --build build-clang --parallel 2
+      - name: Clang test
+        run: ctest --test-dir build-clang --output-on-failure
+      - name: Smoke benchmark
+        run: ./build-clang/vectorforge benchmark --vectors 500 --dimensions 16 --queries 20 --k 5 --ef-search 64
+
+  sanitizers:
+    name: ASan + UBSan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build-san -DCMAKE_BUILD_TYPE=Debug -DVECTORFORGE_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: cmake --build build-san --parallel 2
+      - name: Test under sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+        run: ctest --test-dir build-san --output-on-failure
+
+  ci-gate:
+    name: CI Gate
+    if: always()
+    needs: [compilers, sanitizers]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Enforce required jobs
+        if: needs.compilers.result != 'success' || needs.sanitizers.result != 'success'
+        run: exit 1
+      - name: Confirm green build
+        if: needs.compilers.result == 'success' && needs.sanitizers.result == 'success'
+        run: echo "VectorForge CI is green."
