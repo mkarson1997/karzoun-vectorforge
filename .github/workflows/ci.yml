@@ -8,35 +8,33 @@ on:
 permissions: {}
 
 jobs:
-  build-test:
-    name: ${{ matrix.compiler }}
+  compilers:
+    name: GCC + Clang
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [gcc, clang]
     steps:
       - uses: actions/checkout@v5
-      - name: Configure compiler
-        shell: bash
-        run: |
-          if [[ "${{ matrix.compiler }}" == "clang" ]]; then
-            echo "CC=clang" >> "$GITHUB_ENV"
-            echo "CXX=clang++" >> "$GITHUB_ENV"
-          else
-            echo "CC=gcc" >> "$GITHUB_ENV"
-            echo "CXX=g++" >> "$GITHUB_ENV"
-          fi
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-      - name: Build
-        run: cmake --build build --parallel 2
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
+      - name: GCC configure
+        env:
+          CC: gcc
+          CXX: g++
+        run: cmake -S . -B build-gcc -DCMAKE_BUILD_TYPE=Release
+      - name: GCC build
+        run: cmake --build build-gcc --parallel 2
+      - name: GCC test
+        run: ctest --test-dir build-gcc --output-on-failure
+      - name: Clang configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: cmake -S . -B build-clang -DCMAKE_BUILD_TYPE=Release
+      - name: Clang build
+        run: cmake --build build-clang --parallel 2
+      - name: Clang test
+        run: ctest --test-dir build-clang --output-on-failure
       - name: Smoke benchmark
-        run: ./build/vectorforge benchmark --vectors 500 --dimensions 16 --queries 20 --k 5 --ef-search 64
+        run: ./build-clang/vectorforge benchmark --vectors 500 --dimensions 16 --queries 20 --k 5 --ef-search 64
 
   sanitizers:
     name: ASan + UBSan
@@ -60,13 +58,13 @@ jobs:
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [build-test, sanitizers]
+    needs: [compilers, sanitizers]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
       - name: Enforce required jobs
-        if: needs.build-test.result != 'success' || needs.sanitizers.result != 'success'
+        if: needs.compilers.result != 'success' || needs.sanitizers.result != 'success'
         run: exit 1
       - name: Confirm green build
-        if: needs.build-test.result == 'success' && needs.sanitizers.result == 'success'
+        if: needs.compilers.result == 'success' && needs.sanitizers.result == 'success'
         run: echo "VectorForge CI is green."
